@@ -73,12 +73,18 @@ var fixtures = []struct {
 	},
 
 	{
-		"data:"+longLine()+"\n\n",
+		"data: {\"ok\": true}\n\n",
+		[]messageExpectation{
+			{nil, nil, []byte(`{"ok": true}`), nil},
+		},
+	},
+
+	{
+		"data:" + longLine() + "\n\n",
 		[]messageExpectation{
 			{nil, nil, []byte(longLine()), nil},
 		},
 	},
-
 }
 
 func TestDecoder(t *testing.T) {
