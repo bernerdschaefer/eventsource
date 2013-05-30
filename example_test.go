@@ -6,9 +6,47 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 )
+
+func ExampleEncoder() {
+	enc := eventsource.NewEncoder(os.Stdout)
+
+	messages := []eventsource.Message{
+		{ID: []byte("1"), Data: []byte("data")},
+		{ID: []byte(""), Data: []byte("id reset")},
+		{Event: []byte("add"), Data: []byte("1")},
+	}
+
+	for _, message := range messages {
+		if err := enc.Write(message); err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	if err := enc.WriteField("", []byte("heartbeat")); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := enc.Flush(); err != nil {
+		log.Fatal(err)
+	}
+
+	// Output:
+	// id: 1
+	// data: data
+	//
+	// id
+	// data: id reset
+	//
+	// event: add
+	// data: 1
+	//
+	// : heartbeat
+	//
+}
 
 func ExampleDecoder() {
 	stream := strings.NewReader(`id: 1
