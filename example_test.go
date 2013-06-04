@@ -11,6 +11,41 @@ import (
 	"time"
 )
 
+func ExampleHandler() {
+	http.Handle("/events", eventsource.Handler(func(e *eventsource.Encoder, stop <-chan bool) {
+		for {
+			select {
+			case <-time.After(200 * time.Millisecond):
+				e.Encode(eventsource.Event{Data: []byte("tick")})
+			case <-stop:
+				return
+			}
+		}
+	}))
+}
+
+func ExampleHandlerServeHTTP() {
+	es := eventsource.Handler(func(e *eventsource.Encoder, stop <-chan bool) {
+		for {
+			select {
+			case <-time.After(200 * time.Millisecond):
+				e.Encode(eventsource.Event{Data: []byte("tick")})
+			case <-stop:
+				return
+			}
+		}
+	})
+
+	http.HandleFunc("/events", func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") == "" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		es.ServeHTTP(w, r)
+	})
+}
+
 func ExampleEncoder() {
 	enc := eventsource.NewEncoder(os.Stdout)
 
