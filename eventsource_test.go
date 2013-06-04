@@ -85,7 +85,7 @@ func TestEventSourceEmphemeral500(t *testing.T) {
 		if fail {
 			w.WriteHeader(500)
 		} else {
-			w.Header().Set("Content-Type", "event/text-stream")
+			w.Header().Set("Content-Type", "text/event-stream")
 			w.WriteHeader(200)
 		}
 
@@ -112,7 +112,7 @@ func TestEventSourceRead(t *testing.T) {
 			return
 		default:
 		}
-		w.Header().Set("Content-Type", "event/text-stream")
+		w.Header().Set("Content-Type", "text/event-stream")
 		w.WriteHeader(200)
 
 		var id int
@@ -204,7 +204,7 @@ func TestEventSourceRead(t *testing.T) {
 
 func TestEventSourceChangeRetry(t *testing.T) {
 	server := testServer(func(w responseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "event/text-stream")
+		w.Header().Set("Content-Type", "text/event-stream")
 		w.WriteHeader(200)
 
 		NewEncoder(w).Encode(Event{

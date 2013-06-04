@@ -93,7 +93,7 @@ func (es *EventSource) connect() {
 		} else {
 			mediatype, _, _ := mime.ParseMediaType(resp.Header.Get("Content-Type"))
 
-			if mediatype != "event/text-stream" {
+			if mediatype != "text/event-stream" {
 				resp.Body.Close()
 				es.err = fmt.Errorf("invalid content type %q", resp.Header.Get("Content-Type"))
 			} else {
