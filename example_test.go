@@ -14,10 +14,10 @@ import (
 func ExampleEncoder() {
 	enc := eventsource.NewEncoder(os.Stdout)
 
-	messages := []eventsource.Message{
+	messages := []eventsource.Event{
 		{ID: []byte("1"), Data: []byte("data")},
 		{ID: []byte(""), Data: []byte("id reset")},
-		{Event: []byte("add"), Data: []byte("1")},
+		{Type: []byte("add"), Data: []byte("1")},
 	}
 
 	for _, message := range messages {
@@ -95,6 +95,6 @@ func ExampleNew() {
 			log.Fatal(err)
 		}
 
-		log.Printf("%s. %s %s\n", message.ID, message.Event, message.Data)
+		log.Printf("%s. %s %s\n", message.ID, message.Type, message.Data)
 	}
 }

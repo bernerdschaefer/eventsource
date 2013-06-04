@@ -58,7 +58,7 @@ func (e *Encoder) WriteField(field string, value []byte) (err error) {
 
 // Write wries a message to the connection. If m contains no data, this is a
 // noop.
-func (e *Encoder) Write(m Message) error {
+func (e *Encoder) Write(m Event) error {
 	if len(m.Data) == 0 {
 		return nil
 	}
@@ -67,7 +67,7 @@ func (e *Encoder) Write(m Message) error {
 		return err
 	}
 
-	if err := e.WriteField("event", m.Event); err != nil {
+	if err := e.WriteField("event", m.Type); err != nil {
 		return err
 	}
 

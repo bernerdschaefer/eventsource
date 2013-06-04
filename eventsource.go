@@ -17,10 +17,10 @@ var (
 	ErrClosed = errors.New("closed")
 )
 
-type Message struct {
-	ID    []byte
-	Event []byte
-	Data  []byte
+type Event struct {
+	ID   []byte
+	Type []byte
+	Data []byte
 }
 
 // An EventSource consumes server sent events over HTTP with automatic
@@ -99,7 +99,7 @@ func (es *EventSource) connect() {
 // Read a message from EventSource. If an error is returned, the EventSource
 // will not reconnect, and any further call to Read() will return the same
 // error.
-func (es *EventSource) Read() (Message, error) {
+func (es *EventSource) Read() (Event, error) {
 	if es.r == nil {
 		es.connect()
 	}
@@ -124,8 +124,8 @@ func (es *EventSource) Read() (Message, error) {
 			es.lastEventID = id
 		}
 
-		return Message{id, event, data}, nil
+		return Event{id, event, data}, nil
 	}
 
-	return Message{}, es.err
+	return Event{}, es.err
 }

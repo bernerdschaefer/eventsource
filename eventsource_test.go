@@ -147,8 +147,8 @@ func TestEventSourceRead(t *testing.T) {
 		t.Fatalf("expected id = 0, got %s", message.ID)
 	}
 
-	if !bytes.Equal([]byte("message"), message.Event) {
-		t.Fatalf("expected event = message, got %s", message.Event)
+	if !bytes.Equal([]byte("message"), message.Type) {
+		t.Fatalf("expected event = message, got %s", message.Type)
 	}
 
 	if !bytes.Equal([]byte("message 0"), message.Data) {
@@ -165,8 +165,8 @@ func TestEventSourceRead(t *testing.T) {
 		t.Fatalf("expected id = 1, got %s", message.ID)
 	}
 
-	if !bytes.Equal([]byte("message"), message.Event) {
-		t.Fatalf("expected event = message, got %s", message.Event)
+	if !bytes.Equal([]byte("message"), message.Type) {
+		t.Fatalf("expected event = message, got %s", message.Type)
 	}
 
 	if !bytes.Equal([]byte("message 1"), message.Data) {
@@ -186,8 +186,8 @@ func TestEventSourceRead(t *testing.T) {
 		t.Fatalf("expected id = 2, got %s", message.ID)
 	}
 
-	if !bytes.Equal([]byte("message"), message.Event) {
-		t.Fatalf("expected event = message, got %s", message.Event)
+	if !bytes.Equal([]byte("message"), message.Type) {
+		t.Fatalf("expected event = message, got %s", message.Type)
 	}
 
 	if !bytes.Equal([]byte("message 2"), message.Data) {
