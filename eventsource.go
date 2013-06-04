@@ -8,6 +8,7 @@ import (
 	"io"
 	"mime"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -132,6 +133,12 @@ func (es *EventSource) Read() (Event, error) {
 
 		if len(e.ID) > 0 || e.ResetID {
 			es.lastEventID = e.ID
+		}
+
+		if len(e.Retry) > 0 {
+			if retry, err := strconv.Atoi(e.Retry); err == nil {
+				es.retry = time.Duration(retry) * time.Millisecond
+			}
 		}
 
 		return e, nil

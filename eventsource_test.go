@@ -201,3 +201,33 @@ func TestEventSourceRead(t *testing.T) {
 		t.Fatal("expected fatal err")
 	}
 }
+
+func TestEventSourceChangeRetry(t *testing.T) {
+	server := testServer(func(w responseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "event/text-stream")
+		w.WriteHeader(200)
+
+		NewEncoder(w).Encode(Event{
+			Retry: "10000",
+			Data: []byte("foo"),
+		})
+	})
+
+	defer server.Close()
+
+	es := New(request(server.URL), -1)
+
+	event, err := es.Read()
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if event.Retry != "10000" {
+		t.Error("event retry not set")
+	}
+
+	if es.retry != (10 * time.Second) {
+		t.Fatal("expected retry to be updated, but wasn't")
+	}
+}
