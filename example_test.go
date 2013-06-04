@@ -24,7 +24,7 @@ func ExampleHandler() {
 	}))
 }
 
-func ExampleHandlerServeHTTP() {
+func ExampleHandler_ServeHTTP() {
 	es := eventsource.Handler(func(e *eventsource.Encoder, stop <-chan bool) {
 		for {
 			select {
