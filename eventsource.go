@@ -15,12 +15,20 @@ var (
 	// ErrClosed signals that the event source has been closed and will not be
 	// reopened.
 	ErrClosed = errors.New("closed")
+
+	// InvalidEncodingErr is returned by Encoder and Decoder when invalid UTF-8
+	// event data is encountered.
+	InvalidEncodingErr = errors.New("invalid UTF-8 sequence")
 )
 
+// An Event is a message can be written to an event stream and read from an
+// event source.
 type Event struct {
-	ID   []byte
-	Type []byte
-	Data []byte
+	Type    string
+	ID      string
+	Retry   string
+	Data    []byte
+	ResetID bool
 }
 
 // An EventSource consumes server sent events over HTTP with automatic
@@ -31,7 +39,7 @@ type EventSource struct {
 	err         error
 	r           io.ReadCloser
 	dec         *Decoder
-	lastEventID []byte
+	lastEventID string
 }
 
 // New prepares an EventSource. The connection is automatically managed, using
@@ -64,7 +72,7 @@ func (es *EventSource) connect() {
 			<-time.After(es.retry)
 		}
 
-		es.request.Header.Set("Last-Event-Id", string(es.lastEventID))
+		es.request.Header.Set("Last-Event-Id", es.lastEventID)
 
 		resp, err := http.DefaultClient.Do(es.request)
 
@@ -96,7 +104,7 @@ func (es *EventSource) connect() {
 	}
 }
 
-// Read a message from EventSource. If an error is returned, the EventSource
+// Read an event from EventSource. If an error is returned, the EventSource
 // will not reconnect, and any further call to Read() will return the same
 // error.
 func (es *EventSource) Read() (Event, error) {
@@ -105,26 +113,28 @@ func (es *EventSource) Read() (Event, error) {
 	}
 
 	for es.err == nil {
-		id, event, data, err := es.dec.Read()
+		var e Event
+
+		err := es.dec.Decode(&e)
+
+		if err == InvalidEncodingErr {
+			continue
+		}
 
 		if err != nil {
 			es.connect()
 			continue
 		}
 
-		if len(data) == 0 {
+		if len(e.Data) == 0 {
 			continue
 		}
 
-		if len(event) == 0 {
-			event = []byte("message")
+		if len(e.ID) > 0 || e.ResetID {
+			es.lastEventID = e.ID
 		}
 
-		if id != nil {
-			es.lastEventID = id
-		}
-
-		return Event{id, event, data}, nil
+		return e, nil
 	}
 
 	return Event{}, es.err

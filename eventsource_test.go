@@ -138,60 +138,60 @@ func TestEventSourceRead(t *testing.T) {
 	es := New(request(server.URL), -1)
 	more <- true
 
-	message, err := es.Read()
+	event, err := es.Read()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if !bytes.Equal([]byte("0"), message.ID) {
-		t.Fatalf("expected id = 0, got %s", message.ID)
+	if event.ID != "0" {
+		t.Fatalf("expected id = 0, got %s", event.ID)
 	}
 
-	if !bytes.Equal([]byte("message"), message.Type) {
-		t.Fatalf("expected event = message, got %s", message.Type)
+	if event.Type != "message" {
+		t.Fatalf("expected event = message, got %s", event.Type)
 	}
 
-	if !bytes.Equal([]byte("message 0"), message.Data) {
-		t.Fatalf("expected data = message 0, got %s", message.Data)
+	if !bytes.Equal([]byte("message 0"), event.Data) {
+		t.Fatalf("expected data = message 0, got %s", event.Data)
 	}
 
 	more <- true
-	message, err = es.Read()
+	event, err = es.Read()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if !bytes.Equal([]byte("1"), message.ID) {
-		t.Fatalf("expected id = 1, got %s", message.ID)
+	if event.ID != "1" {
+		t.Fatalf("expected id = 1, got %s", event.ID)
 	}
 
-	if !bytes.Equal([]byte("message"), message.Type) {
-		t.Fatalf("expected event = message, got %s", message.Type)
+	if event.Type != "message" {
+		t.Fatalf("expected event = message, got %s", event.Type)
 	}
 
-	if !bytes.Equal([]byte("message 1"), message.Data) {
-		t.Fatalf("expected data = message 1, got %s", message.Data)
+	if !bytes.Equal([]byte("message 1"), event.Data) {
+		t.Fatalf("expected data = message 1, got %s", event.Data)
 	}
 
 	// stop handler
 	more <- false
 	// start handler
 	more <- true
-	message, err = es.Read()
+	event, err = es.Read()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if !bytes.Equal([]byte("2"), message.ID) {
-		t.Fatalf("expected id = 2, got %s", message.ID)
+	if event.ID != "2" {
+		t.Fatalf("expected id = 2, got %s", event.ID)
 	}
 
-	if !bytes.Equal([]byte("message"), message.Type) {
-		t.Fatalf("expected event = message, got %s", message.Type)
+	if event.Type != "message" {
+		t.Fatalf("expected event = message, got %s", event.Type)
 	}
 
-	if !bytes.Equal([]byte("message 2"), message.Data) {
-		t.Fatalf("expected data = message 2, got %s", message.Data)
+	if !bytes.Equal([]byte("message 2"), event.Data) {
+		t.Fatalf("expected data = message 2, got %s", event.Data)
 	}
 
 	more <- false

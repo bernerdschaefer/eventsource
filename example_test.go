@@ -14,14 +14,14 @@ import (
 func ExampleEncoder() {
 	enc := eventsource.NewEncoder(os.Stdout)
 
-	messages := []eventsource.Event{
-		{ID: []byte("1"), Data: []byte("data")},
-		{ID: []byte(""), Data: []byte("id reset")},
-		{Type: []byte("add"), Data: []byte("1")},
+	events := []eventsource.Event{
+		{ID: "1", Data: []byte("data")},
+		{ResetID: true, Data: []byte("id reset")},
+		{Type: "add", Data: []byte("1")},
 	}
 
-	for _, message := range messages {
-		if err := enc.Write(message); err != nil {
+	for _, event := range events {
+		if err := enc.Encode(event); err != nil {
 			log.Fatal(err)
 		}
 	}
@@ -65,7 +65,8 @@ data: 123
 	dec := eventsource.NewDecoder(stream)
 
 	for {
-		id, event, data, err := dec.Read()
+		var event eventsource.Event
+		err := dec.Decode(&event)
 
 		if err == io.EOF {
 			break
@@ -73,7 +74,7 @@ data: 123
 			log.Fatal(err)
 		}
 
-		fmt.Printf("%s. %s %s\n", id, event, data)
+		fmt.Printf("%s. %s %s\n", event.ID, event.Type, event.Data)
 	}
 
 	// Output:
@@ -89,12 +90,12 @@ func ExampleNew() {
 	es := eventsource.New(req, 3*time.Second)
 
 	for {
-		message, err := es.Read()
+		event, err := es.Read()
 
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		log.Printf("%s. %s %s\n", message.ID, message.Type, message.Data)
+		log.Printf("%s. %s %s\n", event.ID, event.Type, event.Data)
 	}
 }

@@ -4,9 +4,10 @@ import (
 	"bufio"
 	"bytes"
 	"io"
+	"unicode/utf8"
 )
 
-// A Decoder reads and decodes EventSource messages from an input stream.
+// A Decoder reads and decodes EventSource events from an input stream.
 type Decoder struct {
 	r *bufio.Reader
 }
@@ -18,73 +19,88 @@ func NewDecoder(r io.Reader) *Decoder {
 	}
 }
 
-// Reads an event. If a returned []byte value is nil, it was not included in
-// the event.
-func (d *Decoder) Read() (id, event, data []byte, err error) {
-	var buf bytes.Buffer
-	var dataBuf bytes.Buffer
+// ReadField reads a single line from the stream and parses it as a field. A
+// complete event is signalled by an empty key and value. The returned error
+// may either be an error from the stream, or an InvalidEncodingErr if the
+// value is not valid UTF-8.
+func (d *Decoder) ReadField() (field string, value []byte, err error) {
+	var buf []byte
 
 	for {
-		// BUG(bernerd): The EventSource spec defines valid line endings as CR, LF,
-		// CRLF. We only support LF or CRLF.
-		l, isPrefix, err := d.r.ReadLine()
+		line, isPrefix, err := d.r.ReadLine()
 
 		if err != nil {
-			return nil, nil, nil, err
+			return "", nil, err
 		}
 
-		buf.Write(l)
+		buf = append(buf, line...)
 
-		if isPrefix {
-			continue
-		}
-
-		line := make([]byte, buf.Len())
-		copy(line, buf.Bytes())
-		buf.Reset()
-
-		if len(line) == 0 {
+		if !isPrefix {
 			break
-		}
-
-		if line[0] == ':' {
-			continue // comment
-		}
-
-		var field string
-		var value []byte
-		parts := bytes.SplitN(line, []byte{':'}, 2)
-
-		if len(parts) == 2 {
-			field = string(parts[0])
-			value = parts[1]
-		} else {
-			field = string(parts[0])
-			value = []byte{}
-		}
-
-		if len(value) > 0 && value[0] == ' ' {
-			value = value[1:]
-		}
-
-		switch field {
-		// BUG(bernerd): Server sent "retry" fields are ignored. Should this be
-		// supported?
-		case "id":
-			id = value
-		case "event":
-			event = value
-		case "data":
-			dataBuf.Write(value)
-			dataBuf.WriteRune('\n')
 		}
 	}
 
-	data = dataBuf.Bytes()
+	if len(buf) == 0 {
+		return "", nil, nil
+	}
 
-	if len(data) > 0 && data[len(data)-1] == '\n' {
-		data = data[:len(data)-1]
+	parts := bytes.SplitN(buf, []byte{':'}, 2)
+	field = string(parts[0])
+
+	if len(parts) == 2 {
+		value = parts[1]
+	}
+
+	// §7. If value starts with a U+0020 SPACE character, remove it from value.
+	if len(value) > 0 && value[0] == ' ' {
+		value = value[1:]
+	}
+
+	if !utf8.ValidString(field) || !utf8.Valid(value) {
+		err = InvalidEncodingErr
 	}
 
 	return
+}
+
+// Decode reads the next event from its input and stores it in the provided
+// Event pointer.
+func (d *Decoder) Decode(e *Event) error {
+	var wroteData bool
+
+	// set default event type
+	e.Type = "message"
+
+	for {
+		field, value, err := d.ReadField()
+
+		if err != nil {
+			return err
+		}
+
+		if len(field) == 0 && len(value) == 0 {
+			break
+		}
+
+		switch field {
+		case "id":
+			e.ID = string(value)
+			if len(e.ID) == 0 {
+				e.ResetID = true
+			}
+		case "retry":
+			e.Retry = string(value)
+		case "event":
+			e.Type = string(value)
+		case "data":
+			if wroteData {
+				e.Data = append(e.Data, '\n')
+			} else {
+				wroteData = true
+			}
+			e.Data = append(e.Data, value...)
+		}
+	}
+
+	return nil
 }

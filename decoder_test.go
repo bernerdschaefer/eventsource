@@ -2,7 +2,7 @@ package eventsource
 
 import (
 	"bytes"
-	"io"
+	"reflect"
 	"testing"
 )
 
@@ -15,125 +15,66 @@ func longLine() string {
 	return string(buf)
 }
 
-type messageExpectation struct {
-	id    []byte
-	event []byte
-	data  []byte
-	error
-}
+func TestDecoderReadField(t *testing.T) {
+	table := []struct {
+		in    string
+		field string
+		value []byte
+		err   error
+	}{
+		{"\n", "", nil, nil},
+		{"id", "id", nil, nil},
+		{"id:", "id", nil, nil},
+		{"id:1", "id", []byte("1"), nil},
+		{"id: 1", "id", []byte("1"), nil},
+		{"data: " + longLine(), "data", []byte(longLine()), nil},
+		{"\xFF\xFE\xFD", "\xFF\xFE\xFD", nil, InvalidEncodingErr},
+		{"data: \xFF\xFE\xFD", "data", []byte("\xFF\xFE\xFD"), InvalidEncodingErr},
+	}
 
-var fixtures = []struct {
-	source       string
-	expectations []messageExpectation
-}{
-	{
-		"data: message 1\r\n\r\ndata: message\r\ndata:2\r\n\r\ndata: message 3\r\n\r\n",
-		[]messageExpectation{
-			{nil, nil, []byte("message 1"), nil},
-			{nil, nil, []byte("message\n2"), nil},
-			{nil, nil, []byte("message 3"), nil},
-			{nil, nil, nil, io.EOF},
-		},
-	},
+	for i, tt := range table {
+		dec := NewDecoder(bytes.NewBufferString(tt.in))
 
-	{
-		": this is a comment\r\n\r\ndata: space\r\n\r\ndata:nospace\r\n\r\n",
-		[]messageExpectation{
-			{nil, nil, nil, nil},
-			{nil, nil, []byte("space"), nil},
-			{nil, nil, []byte("nospace"), nil},
-		},
-	},
+		field, value, err := dec.ReadField()
 
-	{
-		"event: add\ndata: 123\n\nevent: remove\ndata: 321\n\nevent: add\ndata: 123\n\n",
-		[]messageExpectation{
-			{nil, []byte("add"), []byte("123"), nil},
-			{nil, []byte("remove"), []byte("321"), nil},
-			{nil, []byte("add"), []byte("123"), nil},
-		},
-	},
-
-	{
-		"data: first event\nid: 1\n\ndata:second event\nid\n\ndata: third event\n\n",
-		[]messageExpectation{
-			{[]byte("1"), nil, []byte("first event"), nil},
-			{[]byte{}, nil, []byte("second event"), nil},
-			{nil, nil, []byte("third event"), nil},
-		},
-	},
-
-	{
-		"data\n\ndata:\ndata:\n\ndata:\n",
-		[]messageExpectation{
-			{nil, nil, []byte(""), nil},
-			{nil, nil, []byte("\n"), nil},
-			{nil, nil, nil, io.EOF},
-		},
-	},
-
-	{
-		"data: {\"ok\": true}\n\n",
-		[]messageExpectation{
-			{nil, nil, []byte(`{"ok": true}`), nil},
-		},
-	},
-
-	{
-		"data:" + longLine() + "\n\n",
-		[]messageExpectation{
-			{nil, nil, []byte(longLine()), nil},
-		},
-	},
-}
-
-func TestDecoder(t *testing.T) {
-	for i, f := range fixtures {
-		dec := NewDecoder(bytes.NewBufferString(f.source))
-
-		for j, e := range f.expectations {
-			id, event, data, err := dec.Read()
-
-			if err != e.error {
-				t.Errorf("%d.%d expected err=%q, got %q", i, j, e.error, err)
-				continue
-			}
-
-			if e.id == nil && id != nil {
-				t.Errorf("%d.%d expected id=nil, got %q", i, j, id)
-			}
-
-			if e.id != nil && id == nil {
-				t.Errorf("%d.%d expected id==%q, got nil", i, j, e.id)
-			}
-
-			if !bytes.Equal(e.id, id) {
-				t.Errorf("%d.%d expected id=%q, got %q", i, j, e.id, id)
-			}
-
-			if !bytes.Equal(e.event, event) {
-				t.Errorf("%d.%d expected event=%q, got %q", i, j, e.event, event)
-			}
-
-			if e.event == nil && event != nil {
-				t.Errorf("%d.%d expected event=nil, got %q", i, j, event)
-			}
-
-			if !bytes.Equal(e.data, data) {
-				t.Errorf("%d.%d expected data=%q, got %q", i, j, e.data, data)
-			}
-
-			if e.data == nil && data != nil {
-				t.Errorf("%d.%d expected data=nil, got %q", i, j, data)
-			}
-
-			if e.data != nil && data == nil {
-				t.Errorf("%d.%d expected data=%q, got nil", i, j, e.data)
-			}
+		if err != tt.err {
+			t.Errorf("%d. expected err=%q, got %q", i, tt.err, err)
+			continue
 		}
 
-		if _, _, _, err := dec.Read(); err != io.EOF {
-			t.Errorf("%d. expected last read to be EOF, was %s", i, err)
+		if exp, got := tt.field, field; exp != got {
+			t.Errorf("%d. expected field=%q, got %q", i, exp, got)
+		}
+
+		if exp, got := tt.value, value; !bytes.Equal(exp, got) {
+			t.Errorf("%d. expected value=%q, got %q", i, exp, got)
+		}
+	}
+}
+
+func TestDecoderDecode(t *testing.T) {
+	table := []struct {
+		in  string
+		out Event
+	}{
+		{"event: type\ndata\n\n", Event{Type: "type"}},
+		{"id: 123\ndata\n\n", Event{Type: "message", ID: "123"}},
+		{"retry: 10000\ndata\n\n", Event{Type: "message", Retry: "10000"}},
+		{"data: data\n\n", Event{Type: "message", Data: []byte("data")}},
+		{"id\ndata\n\n", Event{Type: "message", ResetID: true}},
+	}
+
+	for i, tt := range table {
+		dec := NewDecoder(bytes.NewBufferString(tt.in))
+
+		var event Event
+		if err := dec.Decode(&event); err != nil {
+			t.Errorf("%d. %s", i, err)
+			continue
+		}
+
+		if !reflect.DeepEqual(event, tt.out) {
+			t.Errorf("%d. expected %#v, got %#v", i, tt.out, event)
 		}
 	}
 }
