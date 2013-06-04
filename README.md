@@ -20,5 +20,5 @@ See [godoc][godoc] for pretty documentation or:
     # in the eventsource package directory
     $ go doc
 
-[spec]: http://www.w3.org/TR/eventsource/#the-eventsource-interface
+[spec]: http://www.w3.org/TR/eventsource/
 [godoc]: http://godoc.org/github.com/bernerdschaefer/eventsource

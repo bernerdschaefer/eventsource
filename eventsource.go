@@ -12,6 +12,8 @@ import (
 )
 
 var (
+	// ErrClosed signals that the event source has been closed and will not be
+	// reopened.
 	ErrClosed = errors.New("closed")
 )
 
@@ -29,12 +31,12 @@ type EventSource struct {
 	err         error
 	r           io.ReadCloser
 	dec         *Decoder
-	lastEventId []byte
+	lastEventID []byte
 }
 
-// Prepare an EventSource. The connection is automatically managed, using req
-// to connect, and retrying from recoverable errors after waiting the provided
-// retry duration.
+// New prepares an EventSource. The connection is automatically managed, using
+// req to connect, and retrying from recoverable errors after waiting the
+// provided retry duration.
 func New(req *http.Request, retry time.Duration) *EventSource {
 	req.Header.Set("Accept", "text/event-stream")
 	req.Header.Set("Cache-Control", "no-cache")
@@ -62,7 +64,7 @@ func (es *EventSource) connect() {
 			<-time.After(es.retry)
 		}
 
-		es.request.Header.Set("Last-Event-Id", string(es.lastEventId))
+		es.request.Header.Set("Last-Event-Id", string(es.lastEventID))
 
 		resp, err := http.DefaultClient.Do(es.request)
 
@@ -119,7 +121,7 @@ func (es *EventSource) Read() (Message, error) {
 		}
 
 		if id != nil {
-			es.lastEventId = id
+			es.lastEventID = id
 		}
 
 		return Message{id, event, data}, nil

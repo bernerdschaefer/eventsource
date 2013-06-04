@@ -117,8 +117,8 @@ func TestEventSourceRead(t *testing.T) {
 
 		var id int
 
-		if lastId := r.Header.Get("Last-Event-Id"); lastId != "" {
-			if i, err := strconv.ParseInt(lastId, 10, 64); err == nil {
+		if lastID := r.Header.Get("Last-Event-Id"); lastID != "" {
+			if i, err := strconv.ParseInt(lastID, 10, 64); err == nil {
 				id = int(i) + 1
 			}
 		}

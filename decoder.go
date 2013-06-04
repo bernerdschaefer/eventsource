@@ -6,7 +6,7 @@ import (
 	"io"
 )
 
-// A decoder reads and decodes EventSource messages from an input stream.
+// A Decoder reads and decodes EventSource messages from an input stream.
 type Decoder struct {
 	r *bufio.Reader
 }
