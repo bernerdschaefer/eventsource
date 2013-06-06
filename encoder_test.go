@@ -14,8 +14,8 @@ func TestWriteField(t *testing.T) {
 	}{
 		{"data", []byte("data"), "data: data\n", nil},
 		{"data", nil, "data\n", nil},
-		{"\xFF\xFE\xFD", nil, "", InvalidEncodingErr},
-		{"data", []byte("\xFF\xFE\xFD"), "", InvalidEncodingErr},
+		{"\xFF\xFE\xFD", nil, "", ErrInvalidEncoding},
+		{"data", []byte("\xFF\xFE\xFD"), "", ErrInvalidEncoding},
 		{"data", []byte("a\nb\nc\n"), "data: a\ndata: b\ndata: c\ndata\n", nil},
 		{"data", []byte("a\r\nb\r\nc"), "data: a\ndata: b\ndata: c\n", nil},
 	}

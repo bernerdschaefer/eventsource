@@ -43,11 +43,11 @@ func (e *Encoder) Flush() error {
 
 // WriteField writes an event field to the connection. If the provided value
 // contains newlines, multiple fields will be emitted. If the returned error is
-// not nil, it will be either InvalidEncodingErr or an error from the
+// not nil, it will be either ErrInvalidEncoding or an error from the
 // connection.
 func (e *Encoder) WriteField(field string, value []byte) error {
 	if !utf8.ValidString(field) || !utf8.Valid(value) {
-		return InvalidEncodingErr
+		return ErrInvalidEncoding
 	}
 
 	for _, line := range bytes.Split(value, []byte{'\n'}) {

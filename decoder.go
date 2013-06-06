@@ -21,7 +21,7 @@ func NewDecoder(r io.Reader) *Decoder {
 
 // ReadField reads a single line from the stream and parses it as a field. A
 // complete event is signalled by an empty key and value. The returned error
-// may either be an error from the stream, or an InvalidEncodingErr if the
+// may either be an error from the stream, or an ErrInvalidEncoding if the
 // value is not valid UTF-8.
 func (d *Decoder) ReadField() (field string, value []byte, err error) {
 	var buf []byte
@@ -57,7 +57,7 @@ func (d *Decoder) ReadField() (field string, value []byte, err error) {
 	}
 
 	if !utf8.ValidString(field) || !utf8.Valid(value) {
-		err = InvalidEncodingErr
+		err = ErrInvalidEncoding
 	}
 
 	return

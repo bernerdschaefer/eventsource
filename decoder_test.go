@@ -28,8 +28,8 @@ func TestDecoderReadField(t *testing.T) {
 		{"id:1", "id", []byte("1"), nil},
 		{"id: 1", "id", []byte("1"), nil},
 		{"data: " + longLine(), "data", []byte(longLine()), nil},
-		{"\xFF\xFE\xFD", "\xFF\xFE\xFD", nil, InvalidEncodingErr},
-		{"data: \xFF\xFE\xFD", "data", []byte("\xFF\xFE\xFD"), InvalidEncodingErr},
+		{"\xFF\xFE\xFD", "\xFF\xFE\xFD", nil, ErrInvalidEncoding},
+		{"data: \xFF\xFE\xFD", "data", []byte("\xFF\xFE\xFD"), ErrInvalidEncoding},
 	}
 
 	for i, tt := range table {

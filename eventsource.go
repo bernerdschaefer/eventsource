@@ -17,9 +17,9 @@ var (
 	// reopened.
 	ErrClosed = errors.New("closed")
 
-	// InvalidEncodingErr is returned by Encoder and Decoder when invalid UTF-8
+	// ErrInvalidEncoding is returned by Encoder and Decoder when invalid UTF-8
 	// event data is encountered.
-	InvalidEncodingErr = errors.New("invalid UTF-8 sequence")
+	ErrInvalidEncoding = errors.New("invalid UTF-8 sequence")
 )
 
 // An Event is a message can be written to an event stream and read from an
@@ -118,7 +118,7 @@ func (es *EventSource) Read() (Event, error) {
 
 		err := es.dec.Decode(&e)
 
-		if err == InvalidEncodingErr {
+		if err == ErrInvalidEncoding {
 			continue
 		}
 
