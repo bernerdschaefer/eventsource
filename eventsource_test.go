@@ -209,7 +209,7 @@ func TestEventSourceChangeRetry(t *testing.T) {
 
 		NewEncoder(w).Encode(Event{
 			Retry: "10000",
-			Data: []byte("foo"),
+			Data:  []byte("foo"),
 		})
 	})
 

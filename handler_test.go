@@ -53,7 +53,7 @@ func TestHandlerSetsContentType(t *testing.T) {
 }
 
 func TestHandlerEncode(t *testing.T) {
-	handler := func (enc *Encoder, stop <-chan bool) {
+	handler := func(enc *Encoder, stop <-chan bool) {
 		enc.Encode(Event{Data: []byte("hello")})
 	}
 
@@ -73,7 +73,7 @@ func TestHandlerEncode(t *testing.T) {
 
 func TestHandlerCloseNotify(t *testing.T) {
 	done := make(chan bool, 1)
-	handler := func (enc *Encoder, stop <-chan bool) {
+	handler := func(enc *Encoder, stop <-chan bool) {
 		<-stop
 		done <- true
 	}
