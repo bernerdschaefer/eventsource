@@ -38,6 +38,7 @@ func NewEncoder(w io.Writer) *Encoder {
 // writer.
 func (e *Encoder) Flush() error {
 	_, err := e.w.Write([]byte{'\n'})
+	e.w.Flush()
 	return err
 }
 

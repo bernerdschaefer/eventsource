@@ -2,8 +2,33 @@ package eventsource
 
 import (
 	"bytes"
+	"io"
 	"testing"
 )
+
+type testFlusher struct {
+	in  bytes.Buffer
+	out bytes.Buffer
+}
+
+func (f *testFlusher) Write(data []byte) (int, error) {
+	return f.in.Write(data)
+}
+
+func (f *testFlusher) Flush() {
+	io.Copy(&f.out, &f.in)
+}
+
+func TestEncoderFlush(t *testing.T) {
+	buf := &testFlusher{}
+	enc := NewEncoder(buf)
+	enc.WriteField("data", []byte("data"))
+	enc.Flush()
+
+	if buf.out.String() != "data: data\n\n" {
+		t.Fatal("Encoder.Flush did not flush underlying writer")
+	}
+}
 
 func TestWriteField(t *testing.T) {
 	table := []struct {
