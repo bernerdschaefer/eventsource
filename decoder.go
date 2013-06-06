@@ -10,13 +10,28 @@ import (
 // A Decoder reads and decodes EventSource events from an input stream.
 type Decoder struct {
 	r *bufio.Reader
+
+	checkedBOM bool
 }
 
 // NewDecoder returns a new decoder that reads from r.
 func NewDecoder(r io.Reader) *Decoder {
-	return &Decoder{
-		r: bufio.NewReader(r),
+	return &Decoder{r: bufio.NewReader(r)}
+}
+
+func (d *Decoder) checkBOM() {
+	r, _, err := d.r.ReadRune()
+
+	if err != nil {
+		// let other other callers handle this
+		return
 	}
+
+	if r != 0xFEFF { // utf8 byte order mark
+		d.r.UnreadRune()
+	}
+
+	d.checkedBOM = true
 }
 
 // ReadField reads a single line from the stream and parses it as a field. A
@@ -24,6 +39,10 @@ func NewDecoder(r io.Reader) *Decoder {
 // may either be an error from the stream, or an ErrInvalidEncoding if the
 // value is not valid UTF-8.
 func (d *Decoder) ReadField() (field string, value []byte, err error) {
+	if !d.checkedBOM {
+		d.checkBOM()
+	}
+
 	var buf []byte
 
 	for {

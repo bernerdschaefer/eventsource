@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strconv"
 	"testing"
 	"time"
@@ -229,5 +230,28 @@ func TestEventSourceChangeRetry(t *testing.T) {
 
 	if es.retry != (10 * time.Second) {
 		t.Fatal("expected retry to be updated, but wasn't")
+	}
+}
+
+func TestEventSourceBOM(t *testing.T) {
+	server := testServer(func(w responseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.WriteHeader(200)
+
+		w.Write([]byte("\xEF\xBB\xBF"))
+		NewEncoder(w).Encode(Event{Type: "custom", Data: []byte("foo")})
+	})
+	defer server.Close()
+
+	es := New(request(server.URL), -1)
+
+	event, err := es.Read()
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !reflect.DeepEqual(event, Event{Type: "custom", Data: []byte("foo")}) {
+		t.Fatal("message was unsuccessfully decoded with BOM")
 	}
 }
