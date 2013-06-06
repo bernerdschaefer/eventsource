@@ -12,7 +12,7 @@ import (
 )
 
 func ExampleHandler() {
-	http.Handle("/events", eventsource.Handler(func(e *eventsource.Encoder, stop <-chan bool) {
+	http.Handle("/events", eventsource.Handler(func(lastID string, e *eventsource.Encoder, stop <-chan bool) {
 		for {
 			select {
 			case <-time.After(200 * time.Millisecond):
@@ -25,7 +25,7 @@ func ExampleHandler() {
 }
 
 func ExampleHandler_ServeHTTP() {
-	es := eventsource.Handler(func(e *eventsource.Encoder, stop <-chan bool) {
+	es := eventsource.Handler(func(lastID string, e *eventsource.Encoder, stop <-chan bool) {
 		for {
 			select {
 			case <-time.After(200 * time.Millisecond):

@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+var emptyHandler Handler = func(id string, e *Encoder, s <-chan bool) {}
+
 type testCloseNotifier struct {
 	closed chan bool
 	http.ResponseWriter
@@ -22,8 +24,6 @@ func (n testCloseNotifier) CloseNotify() <-chan bool {
 }
 
 func TestHandlerAcceptable(t *testing.T) {
-	handler := Handler(func(enc *Encoder, stop <-chan bool) {})
-
 	table := []struct {
 		accept string
 		result bool
@@ -40,19 +40,17 @@ func TestHandlerAcceptable(t *testing.T) {
 	}
 
 	for i, tt := range table {
-		if exp, got := tt.result, handler.acceptable(tt.accept); exp != got {
+		if exp, got := tt.result, emptyHandler.acceptable(tt.accept); exp != got {
 			t.Errorf("%d. expected acceptable(%q) == %t, got %t", i, tt.accept, exp, got)
 		}
 	}
 }
 
 func TestHandlerValidatesAcceptHeader(t *testing.T) {
-	handler := func(enc *Encoder, stop <-chan bool) {}
-
 	w, r := httptest.NewRecorder(), &http.Request{Header: map[string][]string{
 		"Accept": []string{"text/html"},
 	}}
-	Handler(handler).ServeHTTP(w, r)
+	emptyHandler.ServeHTTP(w, r)
 
 	if w.Code != http.StatusNotAcceptable {
 		t.Fatal("handler did not set 406 status")
@@ -60,11 +58,10 @@ func TestHandlerValidatesAcceptHeader(t *testing.T) {
 }
 
 func TestHandlerSetsContentType(t *testing.T) {
-	handler := func(enc *Encoder, stop <-chan bool) {}
 	w, r := httptest.NewRecorder(), &http.Request{Header: map[string][]string{
 		"Accept": []string{"text/event-stream"},
 	}}
-	Handler(handler).ServeHTTP(w, r)
+	emptyHandler.ServeHTTP(w, r)
 
 	if w.HeaderMap.Get("Content-Type") != "text/event-stream" {
 		t.Fatal("handler did not set appropriate content type")
@@ -76,7 +73,7 @@ func TestHandlerSetsContentType(t *testing.T) {
 }
 
 func TestHandlerEncode(t *testing.T) {
-	handler := func(enc *Encoder, stop <-chan bool) {
+	handler := func(lastID string, enc *Encoder, stop <-chan bool) {
 		enc.Encode(Event{Data: []byte("hello")})
 	}
 
@@ -96,7 +93,7 @@ func TestHandlerEncode(t *testing.T) {
 
 func TestHandlerCloseNotify(t *testing.T) {
 	done := make(chan bool, 1)
-	handler := func(enc *Encoder, stop <-chan bool) {
+	handler := func(lastID string, enc *Encoder, stop <-chan bool) {
 		<-stop
 		done <- true
 	}

@@ -7,8 +7,10 @@ import (
 )
 
 // Handler is an adapter for ordinary functions to act as an HTTP handler for
-// event sources.
-type Handler func(encoder *Encoder, stop <-chan bool)
+// event sources. It receives the ID of the last event processed by the client,
+// and Encoder to deliver messages, and a channel to be notified if the client
+// connection is closed.
+type Handler func(lastId string, encoder *Encoder, stop <-chan bool)
 
 func (h Handler) acceptable(accept string) bool {
 	if accept == "" {
@@ -51,5 +53,5 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		stop = notifier.CloseNotify()
 	}
 
-	h(NewEncoder(w), stop)
+	h(r.Header.Get("Last-Event-Id"), NewEncoder(w), stop)
 }
