@@ -21,15 +21,38 @@ func (n testCloseNotifier) CloseNotify() <-chan bool {
 	return n.closed
 }
 
+func TestHandlerAcceptable(t *testing.T) {
+	handler := Handler(func(enc *Encoder, stop <-chan bool) {})
+
+	table := []struct {
+		accept string
+		result bool
+	}{
+		{"", true},
+		{"text/event-stream", true},
+		{"text/*", true},
+		{"*/*", true},
+		{"text/event-stream; q=1.0", true},
+		{"text/*; q=1.0", true},
+		{"*/*; q=1.0", true},
+		{"text/html; q=1.0, text/*; q=0.8", true},
+		{"text/html; q=1.0, image/gif; q=0.6, image/jpeg; q=0.6", false},
+	}
+
+	for i, tt := range table {
+		if exp, got := tt.result, handler.acceptable(tt.accept); exp != got {
+			t.Errorf("%d. expected acceptable(%q) == %t, got %t", i, tt.accept, exp, got)
+		}
+	}
+}
+
 func TestHandlerValidatesAcceptHeader(t *testing.T) {
 	handler := func(enc *Encoder, stop <-chan bool) {}
 
-	w, r := httptest.NewRecorder(), &http.Request{}
+	w, r := httptest.NewRecorder(), &http.Request{Header: map[string][]string{
+		"Accept": []string{"text/html"},
+	}}
 	Handler(handler).ServeHTTP(w, r)
-
-	if w.HeaderMap.Get("Content-Type") != "text/event-stream" {
-		t.Fatal("handler did not set appropriate content type")
-	}
 
 	if w.Code != http.StatusNotAcceptable {
 		t.Fatal("handler did not set 406 status")
